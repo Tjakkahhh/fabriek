@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Wandelplanner België</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wandelen">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14201b" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="map" aria-label="Kaart van België"></div>
+
+<header class="top">
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="q" type="search" placeholder="Zoek gemeente, bos, station…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <button id="menuBtn" class="plain" aria-label="Mijn wandelingen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
+    </button>
+  </div>
+  <ul id="results" class="results" hidden></ul>
+</header>
+
+<div class="side">
+  <button id="layersBtn" aria-label="Kaartlagen">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+  </button>
+  <button id="locBtn" aria-label="Mijn locatie">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+  </button>
+  <button id="drawBtn" aria-label="Punten tekenen aan of uit" aria-pressed="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19z"/></svg>
+  </button>
+</div>
+
+<section class="panel" id="panel">
+  <p id="hint" class="hint">Tik op de kaart om je startpunt te zetten, of laat een rondwandeling voorstellen.</p>
+  <div id="stats" class="stats" hidden>
+    <div><b id="sKm">0</b><span>km</span></div>
+    <div><b id="sTime">0:00</b><span>wandeltijd</span></div>
+    <div><b id="sUp">–</b><span>m stijgen</span></div>
+    <div class="busy" id="busy" hidden aria-label="Route berekenen"></div>
+  </div>
+  <p id="warn" class="warn" hidden></p>
+  <canvas id="profile" hidden height="64" aria-label="Hoogteprofiel"></canvas>
+  <div class="actions">
+    <button id="loopBtn" class="primary">Rondwandeling</button>
+    <button id="undoBtn" disabled>Ongedaan</button>
+    <button id="closeBtn" disabled>Terug naar start</button>
+    <button id="revBtn" disabled>Omkeren</button>
+    <button id="saveBtn" disabled>Bewaren</button>
+    <button id="gpxBtn" disabled>GPX</button>
+    <button id="clearBtn" disabled>Wissen</button>
+  </div>
+</section>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<section class="sheet" id="loopSheet" hidden>
+  <h2>Rondwandeling voorstellen</h2>
+  <label for="loopKm">Afstand: <b id="loopKmVal">8</b> km</label>
+  <input id="loopKm" type="range" min="2" max="30" step="1" value="8">
+  <fieldset>
+    <legend>Vertrekpunt</legend>
+    <label><input type="radio" name="loopFrom" value="first"> Mijn eerste punt</label>
+    <label><input type="radio" name="loopFrom" value="gps"> Mijn locatie</label>
+    <label><input type="radio" name="loopFrom" value="center" checked> Midden van de kaart</label>
+  </fieldset>
+  <div class="row">
+    <button class="close-sheet">Annuleren</button>
+    <button id="loopGo" class="primary">Stel voor</button>
+  </div>
+</section>
+
+<section class="sheet" id="layerSheet" hidden>
+  <h2>Kaart</h2>
+  <fieldset>
+    <legend>Achtergrond</legend>
+    <label><input type="radio" name="base" value="osm" checked> Standaard (OpenStreetMap)</label>
+    <label><input type="radio" name="base" value="ngi"> Topografisch (NGI België)</label>
+    <label><input type="radio" name="base" value="otm"> Reliëf met hoogtelijnen</label>
+  </fieldset>
+  <label class="check"><input type="checkbox" id="trails" checked> Bewegwijzerde wandelroutes en GR-paden</label>
+  <label for="speed">Wandeltempo: <b id="speedVal">4,5</b> km/u</label>
+  <input id="speed" type="range" min="3" max="6.5" step="0.5" value="4.5">
+  <div class="row"><button class="close-sheet primary">Klaar</button></div>
+</section>
+
+<section class="sheet" id="saveSheet" hidden>
+  <h2>Wandeling bewaren</h2>
+  <label for="saveName">Naam</label>
+  <input id="saveName" type="text" maxlength="60" autocomplete="off">
+  <div class="row">
+    <button class="close-sheet">Annuleren</button>
+    <button id="saveGo" class="primary">Bewaar</button>
+  </div>
+</section>
+
+<section class="sheet" id="listSheet" hidden>
+  <h2>Mijn wandelingen</h2>
+  <ul id="saved" class="saved"></ul>
+  <p id="savedEmpty" class="hint">Nog geen bewaarde wandelingen. Teken een route en tik op Bewaren.</p>
+  <div class="row"><button class="close-sheet primary">Sluiten</button></div>
+</section>
+
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
