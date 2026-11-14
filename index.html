@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Wandelplanner België</title>
+<title>Looproutes België</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Wandelen">
+<meta name="apple-mobile-web-app-title" content="Lopen">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14201b" media="(prefers-color-scheme: dark)">
@@ -22,8 +22,8 @@
 <header class="top">
   <div class="search">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <input id="q" type="search" placeholder="Zoek gemeente, bos, station…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
-    <button id="menuBtn" class="plain" aria-label="Mijn wandelingen">
+    <input id="q" type="search" placeholder="Zoek gemeente, park, bos…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    <button id="menuBtn" class="plain" aria-label="Mijn looproutes">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
     </button>
   </div>
@@ -43,17 +43,20 @@
 </div>
 
 <section class="panel" id="panel">
-  <p id="hint" class="hint">Tik op de kaart om je startpunt te zetten, of laat een rondwandeling voorstellen.</p>
+  <div class="kindrow">
+    <button id="kindBtn" class="kindpill" aria-label="Training en tempo wijzigen"></button>
+    <div class="busy" id="busy" hidden aria-label="Route berekenen"></div>
+  </div>
+  <p id="hint" class="hint">Tik op de kaart om je startpunt te zetten, of laat een rondje voorstellen.</p>
   <div id="stats" class="stats" hidden>
     <div><b id="sKm">0</b><span>km</span></div>
-    <div><b id="sTime">0:00</b><span>wandeltijd</span></div>
+    <div><b id="sTime">0:00</b><span>looptijd</span></div>
     <div><b id="sUp">–</b><span>m stijgen</span></div>
-    <div class="busy" id="busy" hidden aria-label="Route berekenen"></div>
   </div>
   <p id="warn" class="warn" hidden></p>
   <canvas id="profile" hidden height="64" aria-label="Hoogteprofiel"></canvas>
   <div class="actions">
-    <button id="loopBtn" class="primary">Rondwandeling</button>
+    <button id="loopBtn" class="primary">Rondje</button>
     <button id="undoBtn" disabled>Ongedaan</button>
     <button id="closeBtn" disabled>Terug naar start</button>
     <button id="revBtn" disabled>Omkeren</button>
@@ -66,9 +69,10 @@
 <div class="scrim" id="scrim" hidden></div>
 
 <section class="sheet" id="loopSheet" hidden>
-  <h2>Rondwandeling voorstellen</h2>
+  <h2>Rondje voorstellen</h2>
+  <button id="loopKind" class="kindpill"></button>
   <label for="loopKm">Afstand: <b id="loopKmVal">8</b> km</label>
-  <input id="loopKm" type="range" min="2" max="30" step="1" value="8">
+  <input id="loopKm" type="range" min="2" max="42" step="1" value="8">
   <fieldset>
     <legend>Vertrekpunt</legend>
     <label><input type="radio" name="loopFrom" value="first"> Mijn eerste punt</label>
@@ -90,13 +94,11 @@
     <label><input type="radio" name="base" value="otm"> Reliëf met hoogtelijnen</label>
   </fieldset>
   <label class="check"><input type="checkbox" id="trails" checked> Bewegwijzerde wandelroutes en GR-paden</label>
-  <label for="speed">Wandeltempo: <b id="speedVal">4,5</b> km/u</label>
-  <input id="speed" type="range" min="3" max="6.5" step="0.5" value="4.5">
   <div class="row"><button class="close-sheet primary">Klaar</button></div>
 </section>
 
 <section class="sheet" id="saveSheet" hidden>
-  <h2>Wandeling bewaren</h2>
+  <h2>Route bewaren</h2>
   <label for="saveName">Naam</label>
   <input id="saveName" type="text" maxlength="60" autocomplete="off">
   <div class="row">
@@ -106,10 +108,17 @@
 </section>
 
 <section class="sheet" id="listSheet" hidden>
-  <h2>Mijn wandelingen</h2>
+  <h2>Mijn looproutes</h2>
   <ul id="saved" class="saved"></ul>
-  <p id="savedEmpty" class="hint">Nog geen bewaarde wandelingen. Teken een route en tik op Bewaren.</p>
+  <p id="savedEmpty" class="hint">Nog geen bewaarde routes. Teken een route en tik op Bewaren.</p>
   <div class="row"><button class="close-sheet primary">Sluiten</button></div>
+</section>
+
+<section class="sheet" id="kindSheet" hidden>
+  <h2 id="kindTitle">Training en tempo</h2>
+  <div id="kinds" class="kinds"></div>
+  <p class="hint">Tempo per training instelbaar van 2:30 tot 6:45 per km. Bij interval en fartlek is dit je gemiddelde tempo over de hele route.</p>
+  <div class="row"><button id="kindDone" class="primary">Klaar</button></div>
 </section>
 
 <div id="toast" class="toast" hidden role="status"></div>

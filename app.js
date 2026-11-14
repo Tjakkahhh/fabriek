@@ -37,7 +37,22 @@ if (store.get('trails', true)) trails.addTo(map);
 let pts = [];            // [{lat, lng}]
 let segs = [];           // per stuk tussen twee punten: {coords: [[lat, lng, hoogte?]], straight?}
 let ver = 0;
-let speed = store.get('speed', 4.5);
+const KINDS = [
+  { id: 'lsd', name: 'LSD', desc: 'Lange, rustige duurloop', pace: 390 },
+  { id: 'duur', name: 'Duurloop', desc: 'Rustig en gelijkmatig', pace: 360 },
+  { id: 'tempo', name: 'Tempoloop', desc: 'Stevig, net onder wedstrijdtempo', pace: 300 },
+  { id: 'interval', name: 'Interval', desc: 'Snelle blokken met rust ertussen', pace: 255 },
+  { id: 'fartlek', name: 'Fartlek', desc: 'Vaartspel met wisselend tempo', pace: 330 }
+];
+const PACE_MIN = 150, PACE_MAX = 405; // seconden per km: 2:30 tot 6:45
+const clampPace = (s, d) => Number.isFinite(+s) ? Math.min(PACE_MAX, Math.max(PACE_MIN, Math.round(+s))) : d;
+const fmtPace = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+const savedPaces = store.get('paces', {}) || {};
+const paces = {};
+KINDS.forEach(k => { paces[k.id] = clampPace(savedPaces[k.id], k.pace); });
+let kind = store.get('kind', 'duur');
+if (!KINDS.some(k => k.id === kind)) kind = 'duur';
+const kindName = id => (KINDS.find(k => k.id === id) || KINDS[1]).name;
 const history = [];
 const segCache = new Map();
 const routeLayer = L.layerGroup().addTo(map);
@@ -58,7 +73,7 @@ function dest(p, bearing, km) {
 }
 const same = (a, b) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
 
-/* ---------- Routeberekening over wandelpaden ---------- */
+/* ---------- Routeberekening over paden en wegen ---------- */
 async function getJson(url, ms = 12000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
@@ -125,7 +140,7 @@ function stats() {
       else if (p[2] < base) base = p[2];
     }
   }
-  return { c, cum, km, up: hasEle ? Math.round(up) : null, hours: km / speed + (hasEle ? up / 600 : 0) };
+  return { c, cum, km, up: hasEle ? Math.round(up) : null, secs: km * paces[kind] };
 }
 
 function setPts(next, keepHistory = true) {
@@ -177,8 +192,10 @@ function draw() {
   $('#hint').hidden = pts.length > 0;
   $('#stats').hidden = pts.length === 0;
   $('#sKm').textContent = s.km.toFixed(s.km < 10 ? 2 : 1).replace('.', ',');
-  const min = Math.round(s.hours * 60);
-  $('#sTime').textContent = Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0');
+  const t = Math.round(s.secs), mm = String(Math.floor(t % 3600 / 60)), ss = String(t % 60).padStart(2, '0');
+  $('#sTime').textContent = t >= 3600 ? Math.floor(t / 3600) + ':' + mm.padStart(2, '0') + ':' + ss : mm + ':' + ss;
+  const pill = kindName(kind) + ' · ' + fmtPace(paces[kind]) + ' /km';
+  $('#kindBtn').textContent = pill; $('#loopKind').textContent = 'Training: ' + pill;
   $('#sUp').textContent = s.up === null ? '–' : s.up;
   const straight = segs.filter(x => x.straight).length;
   $('#warn').hidden = !straight;
@@ -246,7 +263,9 @@ map.on('click', e => {
   $('#results').hidden = true;
   if (!drawing) return;
   if (!BELGIUM.pad(0.1).contains(e.latlng)) { toast('Dit punt ligt buiten België.'); return; }
+  const isNew = pts.length === 0;
   setPts(pts.concat({ lat: e.latlng.lat, lng: e.latlng.lng }));
+  if (isNew) openKinds('Nieuwe route: welke training?');
 });
 $('#drawBtn').onclick = () => {
   drawing = !drawing;
@@ -273,16 +292,59 @@ function toast(msg, ms = 3200) {
 }
 
 function openSheet(id) { $('#scrim').hidden = false; $(id).hidden = false; }
-function closeSheets() { $('#scrim').hidden = true; document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); }
+function closeSheets() { kindReturn = null; $('#scrim').hidden = true; document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); }
 $('#scrim').onclick = closeSheets;
 document.querySelectorAll('.close-sheet').forEach(b => { b.onclick = closeSheets; });
 
-/* ---------- Kaartlagen en tempo ---------- */
+/* ---------- Training en tempo ---------- */
+let kindReturn = null;
+function renderKinds() {
+  const box = $('#kinds');
+  box.innerHTML = '';
+  KINDS.forEach(k => {
+    const row = document.createElement('div'); row.className = 'kind' + (k.id === kind ? ' on' : '');
+    const label = document.createElement('label');
+    const radio = Object.assign(document.createElement('input'), { type: 'radio', name: 'kind', value: k.id, checked: k.id === kind, id: 'kind-' + k.id });
+    const txt = document.createElement('span'); const b = document.createElement('b'); b.textContent = k.name;
+    const sm = document.createElement('small'); sm.textContent = k.desc; txt.append(b, sm);
+    const out = document.createElement('output'); out.textContent = fmtPace(paces[k.id]) + ' /km';
+    label.append(radio, txt, out);
+    const pace = document.createElement('div'); pace.className = 'pace';
+    const range = Object.assign(document.createElement('input'), { type: 'range', min: PACE_MIN, max: PACE_MAX, step: 1, id: 'pace-' + k.id });
+    range.value = paces[k.id];
+    range.setAttribute('aria-label', 'Tempo ' + k.name + ' in seconden per km');
+    const set = v => {
+      paces[k.id] = clampPace(v, k.pace);
+      range.value = paces[k.id]; out.textContent = fmtPace(paces[k.id]) + ' /km';
+      store.set('paces', paces); draw();
+    };
+    const mk = (t, d, lab) => { const btn = document.createElement('button'); btn.textContent = t; btn.setAttribute('aria-label', lab + ' ' + k.name); btn.onclick = () => set(paces[k.id] + d); return btn; };
+    range.oninput = () => set(range.value);
+    pace.append(mk('−', -1, '1 seconde sneller'), range, mk('+', 1, '1 seconde trager'));
+    radio.onchange = () => {
+      kind = k.id; store.set('kind', kind);
+      box.querySelectorAll('.kind').forEach(el => el.classList.toggle('on', el === row));
+      draw();
+    };
+    row.append(label, pace);
+    box.append(row);
+  });
+}
+function openKinds(title, returnTo) {
+  closeSheets();
+  kindReturn = returnTo || null;
+  $('#kindTitle').textContent = title || 'Training en tempo';
+  renderKinds();
+  openSheet('#kindSheet');
+}
+$('#kindBtn').onclick = () => openKinds();
+$('#loopKind').onclick = () => openKinds('Welke training?', '#loopSheet');
+$('#kindDone').onclick = () => { const back = kindReturn; closeSheets(); if (back) openSheet(back); };
+
+/* ---------- Kaartlagen ---------- */
 $('#layersBtn').onclick = () => {
   document.querySelector('input[name="base"][value="' + baseName + '"]').checked = true;
   $('#trails').checked = map.hasLayer(trails);
-  $('#speed').value = speed;
-  $('#speedVal').textContent = String(speed).replace('.', ',');
   openSheet('#layerSheet');
 };
 document.querySelectorAll('input[name="base"]').forEach(r => {
@@ -296,12 +358,6 @@ document.querySelectorAll('input[name="base"]').forEach(r => {
 $('#trails').onchange = e => {
   if (e.target.checked) trails.addTo(map); else map.removeLayer(trails);
   store.set('trails', e.target.checked);
-};
-$('#speed').oninput = e => {
-  speed = +e.target.value;
-  $('#speedVal').textContent = String(speed).replace('.', ',');
-  store.set('speed', speed);
-  draw();
 };
 
 /* ---------- Mijn locatie ---------- */
@@ -364,7 +420,7 @@ $('#q').addEventListener('input', e => {
 });
 $('#q').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) { clearTimeout(searchTimer); search(e.target.value.trim()); } });
 
-/* ---------- Rondwandeling voorstellen ---------- */
+/* ---------- Rondje voorstellen ---------- */
 $('#loopBtn').onclick = () => {
   const first = document.querySelector('input[name="loopFrom"][value="first"]');
   first.disabled = pts.length === 0;
@@ -404,16 +460,16 @@ $('#loopGo').onclick = async () => {
 /* ---------- Bewaren en laden ---------- */
 const savedList = () => store.get('routes', []);
 $('#saveBtn').onclick = () => {
-  $('#saveName').value = 'Wandeling ' + new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long' });
+  $('#saveName').value = kindName(kind) + ' ' + new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long' });
   openSheet('#saveSheet');
   $('#saveName').select();
 };
 $('#saveGo').onclick = () => {
   const s = stats(), list = savedList();
-  list.unshift({ id: Date.now(), name: $('#saveName').value.trim() || 'Wandeling', date: new Date().toISOString(), km: s.km, up: s.up, pts, segs });
+  list.unshift({ id: Date.now(), name: $('#saveName').value.trim() || kindName(kind), date: new Date().toISOString(), km: s.km, up: s.up, kind, pts, segs });
   store.set('routes', list);
   closeSheets();
-  toast(savedList().length === list.length ? 'Bewaard in Mijn wandelingen.' : 'Bewaren mislukt: de opslag van je toestel is vol of geblokkeerd.');
+  toast(savedList().length === list.length ? 'Bewaard in Mijn looproutes.' : 'Bewaren mislukt: de opslag van je toestel is vol of geblokkeerd.');
 };
 function renderSaved() {
   const list = savedList(), ul = $('#saved');
@@ -424,11 +480,12 @@ function renderSaved() {
     const open = document.createElement('button'); open.className = 'open';
     const b = document.createElement('b'); b.textContent = r.name;
     const sm = document.createElement('small');
-    sm.textContent = r.km.toFixed(1).replace('.', ',') + ' km' + (r.up === null ? '' : ' · ' + r.up + ' m stijgen') + ' · ' +
+    sm.textContent = (r.kind ? kindName(r.kind) + ' · ' : '') + r.km.toFixed(1).replace('.', ',') + ' km' + (r.up === null ? '' : ' · ' + r.up + ' m stijgen') + ' · ' +
       new Date(r.date).toLocaleDateString('nl-BE');
     open.append(b, sm);
     open.onclick = () => {
       closeSheets();
+      if (r.kind && KINDS.some(k => k.id === r.kind)) { kind = r.kind; store.set('kind', kind); }
       history.push(JSON.stringify(pts));
       r.pts.slice(0, -1).forEach((p, i) => { // bewaarde lijnen hergebruiken, ook zonder internet
         if (r.segs && r.segs[i] && !r.segs[i].straight) segCache.set([p.lat, p.lng, r.pts[i + 1].lat, r.pts[i + 1].lng].map(n => n.toFixed(5)).join(','), r.segs[i]);
@@ -454,18 +511,18 @@ function gpx(name) {
   const esc = t => t.replace(/[<>&"]/g, ch => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[ch]));
   const trk = allCoords().map(p => '<trkpt lat="' + p[0].toFixed(6) + '" lon="' + p[1].toFixed(6) + '">' +
     (p.length > 2 ? '<ele>' + p[2].toFixed(1) + '</ele>' : '') + '</trkpt>').join('\n');
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Wandelplanner België" xmlns="http://www.topografix.com/GPX/1/1">\n' +
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Looproutes België" xmlns="http://www.topografix.com/GPX/1/1">\n' +
     '<trk><name>' + esc(name) + '</name><trkseg>\n' + trk + '\n</trkseg></trk>\n</gpx>\n';
 }
 $('#gpxBtn').onclick = async () => {
-  const name = 'Wandeling ' + stats().km.toFixed(1).replace('.', ',') + ' km';
-  const file = new File([gpx(name)], 'wandeling.gpx', { type: 'application/gpx+xml' });
+  const name = kindName(kind) + ' ' + stats().km.toFixed(1).replace('.', ',') + ' km';
+  const file = new File([gpx(name)], 'looproute.gpx', { type: 'application/gpx+xml' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], title: name }); return; }
     catch (e) { if (e.name === 'AbortError') return; }
   }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(file); a.download = 'wandeling.gpx';
+  a.href = URL.createObjectURL(file); a.download = 'looproute.gpx';
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 };
@@ -478,5 +535,5 @@ if (Array.isArray(draft) && draft.length) setPts(draft, false); else refresh();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-window.__wandel = { stats, gpx, get pts() { return pts; } }; // voor tests
+window.__wandel = { stats, gpx, paces, get kind() { return kind; }, get pts() { return pts; } }; // voor tests
 })();

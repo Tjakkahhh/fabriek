@@ -1,5 +1,5 @@
-// App werkt zonder internet; kaarttegels die je al bekeken hebt blijven beschikbaar.
-const SHELL = 'shell-v1', TILES = 'tiles-v1', MAX_TILES = 3000;
+// Looproutes België. App werkt zonder internet; kaarttegels die je al bekeken hebt blijven beschikbaar.
+const SHELL = 'shell-v2', TILES = 'tiles-v1', MAX_TILES = 3000;
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'vendor/leaflet.js', 'vendor/leaflet.css', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 const TILE_HOSTS = ['tile.openstreetmap.org', 'tile.opentopomap.org', 'tile.waymarkedtrails.org', 'cartoweb.wmts.ngi.be'];

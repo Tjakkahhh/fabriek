@@ -1,6 +1,6 @@
 {
-  "name": "Wandelplanner België",
-  "short_name": "Wandelen",
+  "name": "Looproutes België",
+  "short_name": "Lopen",
   "lang": "nl-BE",
   "start_url": "./",
   "scope": "./",

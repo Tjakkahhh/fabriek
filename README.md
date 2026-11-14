@@ -1,6 +1,6 @@
-# Wandelplanner België
+# Looproutes België
 
-Web-app voor iPhone om wandelingen in België te plannen. Geen account, geen build-stap: het is een map met statische bestanden.
+Web-app voor iPhone om hardlooproutes in België te plannen. Geen account, geen build-stap: het is een map met statische bestanden.
 
 ## Op je iPhone zetten
 
@@ -16,13 +16,15 @@ python3 -m http.server 8000
 
 ## Wat de app doet
 
-- Tik op de kaart om punten te zetten; de route volgt wandelpaden.
-- Rondwandeling laten voorstellen op een gekozen afstand (2 tot 30 km).
-- Afstand, wandeltijd, hoogtemeters en hoogteprofiel.
+- Tik op de kaart om punten te zetten; de route volgt paden en wegen.
+- Bij een nieuwe route kies je de training: LSD, duurloop, tempoloop, interval of fartlek.
+- Per training een eigen tempo, instelbaar van 2:30 tot 6:45 per km; de looptijd volgt daaruit.
+- Rondje laten voorstellen op een gekozen afstand (2 tot 42 km).
+- Afstand, looptijd, hoogtemeters en hoogteprofiel.
 - Kaartlagen: OpenStreetMap, topografische kaart van het NGI, reliëfkaart, plus bewegwijzerde routes en GR-paden.
 - Zoeken op plaatsnaam, je eigen locatie volgen.
-- Wandelingen bewaren op het toestel en als GPX delen.
-- Bekeken kaartstukken en bewaarde wandelingen blijven zonder internet beschikbaar.
+- Routes bewaren op het toestel en als GPX delen.
+- Bekeken kaartstukken en bewaarde routes blijven zonder internet beschikbaar.
 
 ## Externe diensten
 

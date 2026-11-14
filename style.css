@@ -66,11 +66,22 @@ button { touch-action: manipulation; cursor: pointer; }
 /* Paneel onderaan */
 .panel { position: absolute; z-index: 450; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 18px 18px 0 0; box-shadow: var(--shadow); padding: 14px max(14px, var(--sr)) calc(var(--sb) + 12px) max(14px, var(--sl)); display: flex; flex-direction: column; gap: 10px; }
 .hint { margin: 0; color: var(--muted); }
+.kindrow { display: flex; align-items: center; gap: 12px; }
+.kindpill { align-self: flex-start; height: 36px; padding: 0 14px; border-radius: 18px; border: 1.5px solid var(--accent); background: none; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kinds { display: flex; flex-direction: column; gap: 4px; }
+.kind { border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.kind.on { border-color: var(--accent); background: var(--surface); }
+.kind > label { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.kind small { display: block; color: var(--muted); }
+.kind output { margin-left: auto; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pace { display: flex; align-items: center; gap: 8px; }
+.pace button { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); font-size: 20px; font-weight: 600; }
+.pace input { flex: 1; min-width: 0; }
 .stats { display: flex; gap: 22px; align-items: flex-end; }
 .stats div { display: flex; flex-direction: column; }
 .stats b { font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .stats span { font-size: 12px; color: var(--muted); }
-.busy { margin-left: auto; width: 20px; height: 20px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; align-self: center; }
+.busy { width: 20px; height: 20px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; align-self: center; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .busy { animation-duration: 3s; } }
 .warn { margin: 0; font-size: 13px; color: var(--warn); }
@@ -108,3 +119,4 @@ button:disabled { opacity: .4; }
 .me { width: 18px; height: 18px; border-radius: 50%; background: #1a73e8; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(26, 115, 232, .35); }
 .leaflet-popup-content { margin: 10px 12px; }
 .leaflet-popup-content button { height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid #d9e0dc; background: #fff; color: #d42027; font-weight: 600; }
+.kind:not(.on) .pace { display: none; }
